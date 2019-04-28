@@ -2,6 +2,13 @@
   "name": "swinnus-tech",
   "version": "0.0.1",
   "description": "Swinnus Tech Blog",
+  "keywords": [
+    "swinnus",
+    "jm.kim"
+  ],
+  "engines": {
+    "node": "10.15.3"
+  },
   "private": true,
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
