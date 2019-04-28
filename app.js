@@ -6,6 +6,23 @@ var logger = require('morgan');
 var session = require('express-session');
 var flash = require('connect-flash');
 //var expressEjsLayouts = require('express-ejs-layouts');
+/*HTTPS 적용: greenlock-express, Let's Encrypt
+const lex = require('greenlock-express').create({
+  version: 'v02', // draft-11 버전 인증서 사,  letsencrypt 인증서 버전
+  configDir: '/etc/letsencrypt', // 또는 ~/letsencrypt/etc, 발급받은 인증서 위치를 넣는 곳
+  server: 'production', //staging을 넣어줍니다. 나중에 staging을 production 또는 https://acme-v01.api.letsencrypt.org/directory으로 바꿔줘야 합니다. staging은 테스트용 SSL을 만들어보는 것
+  approveDomains: (opts, certs, cb) => { //도메인 이름들을 적어줍니다. 참고로 서브 도메인들은 다 적어줘야 합니다. www가 붙은 것도 서브도메인이기 때문에 넣어주어야 하고요. dev.example.com, api.example.com 등이 있다면 그것 또한 넣어줘야 합니다.
+    if (certs) {
+      opts.domains = ['swinnus-tech.herokuapp.com', 'herokuapp.com'];
+    } else {
+      opts.email = 'melody_bs@naver.com';//나중에 만료 예정일 때 이 곳으로 이메일
+      opts.agreeTos = true;//agreeTos는 true를 넣어줍니다. agreeTos는 약관 동의라고 생각하시면 됩니다.
+    }
+    cb(null, { options: opts, certs });
+  },
+  renewWithin: 81 * 24 * 60 * 60 * 1000, //renewWithin과 renewBy는 각각 인증서를 갱신할 최대 기간과 최소 기간을 뜻합니다. 80일과 81일 사이에(인증서의 수명은 90일) 갱신하도록 했습니다.
+  renewBy: 80 * 24 * 60 * 60 * 1000,
+});*/
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
