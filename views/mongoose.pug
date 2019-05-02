@@ -2,7 +2,7 @@ doctype html
 html
   head
     meta(charset='utf-8')
-    title 시퀄라이즈 서버
+    title 몽구스 서버
     style.
       table {
         border: 1px solid black;
@@ -36,7 +36,7 @@ html
       tbody
         for user in users
           tr
-            td= user.id
+            td= user._id
             td= user.name
             td= user.age
             td= user.married ? '기혼' : '미혼'
@@ -61,5 +61,5 @@ html
           th 삭제
       tbody
     br
-    a(href='/mongoose') 몽고디비(몽구스) 사용
-    script(src='/javascripts/sequelize.js')
+    a(href='/') MySQL(Sequelize) 사용  
+    script(src='/javascripts/mongoose.js')

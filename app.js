@@ -26,13 +26,17 @@ const lex = require('greenlock-express').create({
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
-var commentsRouther = require('./routes/comments');
+var commentsRouter = require('./routes/comments');
 //sequelize, mysql2, sequelize-cli -g 설치 후에 추가. // ./models는 ./models/index.js와 같음
 var sequelize = require('./models').sequelize;
+//mongoose 설치 후 추가
+var mongooseConnect = require('./schemas');
 
 var app = express();
 //sync 메서드를 사용하면 서버 실행시 자동으로 MySQL과 연동.
 sequelize.sync();
+//mongoose connect 호출
+mongooseConnect();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -92,7 +96,7 @@ app.use(flash());*/
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-app.use('/comments', commentsRouther);
+app.use('/comments', commentsRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
