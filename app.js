@@ -5,6 +5,10 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var session = require('express-session');
 var flash = require('connect-flash');
+var morgan = require('morgan');
+var passport = require('passport');
+//npm i dotenv 비밀키는 .env 파일에 넣어두면, dotenv가 process.env 객체에 넣어줌.
+require('dotenv').config();
 //var expressEjsLayouts = require('express-ejs-layouts');
 /*HTTPS 적용: greenlock-express, Let's Encrypt
 const lex = require('greenlock-express').create({
@@ -27,14 +31,24 @@ const lex = require('greenlock-express').create({
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var commentsRouter = require('./routes/comments');
+/*SBIRD*/
+var sbirdPageRouter = require('./routes/sbird/page');
+var sbirdAuthRouter = require('./routes/sbird/auth');
+var sbirdPostRouter = require('./routes/sbird/post');
+var sbirdUserRouter = require('./routes/sbird/user');
+/*END SBIRD*/
 //sequelize, mysql2, sequelize-cli -g 설치 후에 추가. // ./models는 ./models/index.js와 같음
 var sequelize = require('./models').sequelize;
+//const sequelize = require('./models');
+//npm i passport passport-local passport-kakao bcrypt // './passport' = './passport/index.js'
+var passportConfig = require('./passport');
 //mongoose 설치 후 추가
 var mongooseConnect = require('./schemas');
 
 var app = express();
 //sync 메서드를 사용하면 서버 실행시 자동으로 MySQL과 연동.
 sequelize.sync();
+passportConfig(passport);
 //mongoose connect 호출
 mongooseConnect();
 
@@ -56,13 +70,19 @@ app.use((req, res, next) => {
 });*/
 
 /*morgan 미들웨어 
-  인자: 개발(dev, short) / 상용(common, combined)*/
-app.use(logger('dev'));
+  인자: 개발(dev, short) / 상용(common, combined)
+app.use(logger('dev'));*/
+app.use(morgan('dev'));
 
 /*static 미들웨어. express 내장
   인자로 정적 파일들이 담긴 폴더 지정 
   자체적으로 정적 파일 라우팅 기능 수행하므로 최대한 위쪽 배치: 쓸데없는 미들웨어 작업 방지, 로그 찍기 위해 로그 다음.*/
 app.use(express.static(path.join(__dirname, 'public')));
+
+/* SBIRD */
+//업로드한 이미지를 제공할 라우터(/img)도 express.static 미들로 폴더와 연결
+app.use('/sbird/img', express.static(path.join(__dirname, 'uploads/sbird/img')));
+/*END SBIRD*/
 
 /*express-ejs-layouts 미들웨어 : app.set(...); 추가 설정 필요. 문서 확인.
 app.use(expressEjsLayouts);*/
@@ -77,13 +97,13 @@ app.use(express.urlencoded({ extended: false })); //false=querystring 모듈 사
 /*cookie-parser 미들웨어: req.cookies...
   첫번째 인자로 문자열. 제공된 문자열로 서명되 쿠키가 됨. 클라이언트에서 수정시 에러발생
   Ex) app.use(cookieParser()); => app.use(cookieParser('secret code'));*/
-  app.use(cookieParser('secret code'));
+app.use(cookieParser(process.env.COOKIE_SECRET));
 
 /*express-session 미들웨어: req.session, req.sessionID, req.session.destroy()...*/
 app.use(session({
   resave: true, //요청 왔을때 세션에 수정 사항 없어도 세션 다시 저장 할지
   saveUninitialized: true, //세션에 저장할 내역이 없더라도 저장할지. 보통 방문자 추적에 사용
-  secret: 'secret code', //필수 항목. cookie-parser 비밀키와 같은 역할로 cookie-parser의 secret과 동일하게 설정 해야함.  
+  secret: process.env.COOKIE_SECRET, //필수 항목. cookie-parser 비밀키와 같은 역할로 cookie-parser의 secret과 동일하게 설정 해야함.  
   cookie: { //세션쿠키 설정: maxAge, domain, path, expire, sameSite, httpOnly, secure 등
     httpOnly: true, //클라이언트에서 쿠키 확인 못하도록 true
     secure: false, //http에서도 사용가능하게. https 도입후 true 변경
@@ -91,16 +111,29 @@ app.use(session({
   },
 }));
 
-/*flash 미들웨어: 일회성 메시지를 웹 브라우저에 나타낼때. req.flash...
-app.use(flash());*/
+/*flash 미들웨어: 일회성 메시지를 웹 브라우저에 나타낼때. req.flash...*/
+app.use(flash());
+//요청(req)객체에 passport설정을 심는다
+app.use(passport.initialize());
+//req.session 객체에 passport 정보 저장. req.session객체는 express-session에서 생성 하므로 이것보다 뒤에 연결해야 함.
+app.use(passport.session());
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/comments', commentsRouter);
+/* SBIRD */
+app.use('/sbird', sbirdPageRouter);
+app.use('/sbird/auth', sbirdAuthRouter);
+app.use('/sbird/post', sbirdPostRouter);
+app.use('/sbird/user', sbirdUserRouter);
+/* SBIRD END */
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
-  next(createError(404));
+  //next(createError(404));
+  const err = new Error('Not Found');
+  err.status = 404;
+  next(err);
 });
 
 // error handler

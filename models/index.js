@@ -13,7 +13,9 @@ const db = {};
 //Default if (config.use_env_variable) {
 //Default   sequelize = new Sequelize(process.env[config.use_env_variable], config);
 //Default } else {
-  sequelize = new Sequelize(config.database, config.username, config.password, config);
+  const sequelize = new Sequelize(
+    config.database, config.username, config.password, config,
+  );
 //Default }
 
 /*Default 
@@ -41,6 +43,37 @@ db.Sequelize = Sequelize;
 //테이블 설정.
 db.User = require('./user')(sequelize, Sequelize);
 db.Comment = require('./comment')(sequelize, Sequelize);
+/* SBIRD */
+db.SbirdUser = require('./sbird/sbirdUser')(sequelize, Sequelize);
+db.SbirdPost = require('./sbird/sbirdPost')(sequelize, Sequelize);
+db.SbirdHashtag = require('./sbird/sbirdHashtag')(sequelize, Sequelize);
+
+db.SbirdUser.hasMany(db.SbirdPost);
+db.SbirdPost.belongsTo(db.SbirdUser);
+/*N:M관계는 중간에 관계 테이블이 생성됨. 시퀄라이즈가 관계를 분석해 자동으로 생성
+(여기서는 PostHashtag라는 이름으로 생성됨, 컬럼이름은 sbirdUserId, sbirdHashtagId로 생성됨)
+sbirdPost데이터에는 getSbirdHashtags, addSbirdHashtags 등의 메서드가 추가됨,
+sbirdHashtag데이터에는 getSbirdPosts, addSbirdPosts 등의 메서드가 추가됨*/
+db.SbirdPost.belongsToMany(db.SbirdHashtag, { through: 'sbird_postHashtags' });
+db.SbirdHashtag.belongsToMany(db.SbirdPost, { through: 'sbird_postHashtags' });
+/* 같은 테이블 간 N:M 관계 */
+db.SbirdUser.belongsToMany(db.SbirdUser, {
+  //sbirdUserId로 컬럼 이름 같으면 팔로워, 팔로잉 구분되지 않으니 각각 넣어 구분
+  foreignKey: 'followingId',
+  //as 옵션은 시퀄이 JOIN작업시 사용하는 이름=> getFollowers, addFollower 등의 메서드 추가됨.
+  as: 'Followers',
+  //생성되는 모델(테이블) 이름 아래와 동일
+  through: 'sbird_follows',
+});
+db.SbirdUser.belongsToMany(db.SbirdUser, {
+  //sbirdUserId로 컬럼 이름 같으면 팔로워, 팔로잉 구분되지 않으니 각각 넣어 구분
+  foreignKey: 'followerId',
+  //as 옵션은 시퀄이 JOIN작업시 사용하는 이름=> getFollowings, addFollowing 등의 메서드 추가됨.
+  as: 'Followings',
+  //생성되는 모델(테이블) 이름 위와 동일
+  through: 'sbird_follows',
+});
+/* END SBIRD */
 //관계설정(MySQL의 JOIN기능을 시퀄이 자동 구현)
 /*
 1:N(일대다)=> 1->N: 1.hasMany(N, {foreignKey: '', sourceKey: ''}); // 1에 대한 N 로우들을 불러온다.
@@ -54,7 +87,7 @@ db.User.hasMany(db.Comment, { foreignKey: 'commenter', sourceKey: 'id' });
 db.Comment.belongsTo(db.User, { foreignKey: 'commenter', targetKey: 'id' });
 /*기본 쿼리 
 INSERT => DB.create({K:V, ...});
-SELECT * => DB.findAll({}); // SELECT * ... LIMIT 1; => .find({});
+SELECT * => DB.findAll({}); // SELECT * ... LIMIT 1; => .findOne({});
 Ex) SELECT id, name FROM users WHERE (name='jm') AND (married=1 OR age>30) 
     ORDER BY age DESC LIMIT1 OFFSET1
   => const { User, Sequlize: {Op} } = require('./user');
