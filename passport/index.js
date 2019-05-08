@@ -1,6 +1,6 @@
 const local = require('./localStrategy');
 const kakao = require('./kakaoStrategy');
-const { SbirdUser } = require('../models');
+const { SbirdUser, SauctionUser } = require('../models');
 
 /* 로그인 진행 과정
 로그인요청-> passport.authenticate() 호출-> 로그인전략 수행
@@ -21,32 +21,60 @@ module.exports = (passport) => {
   세션에 사용자 정보를 모두 저장하면 용량이 커지고 데이터 일관성 문제사 있어 ID만 저장
   */
   passport.serializeUser((user, done) => {
-    done(null, user.id);
+    //done(null, user.id);
+    let userPrototype =  Object.getPrototypeOf(user); 
+    //let userGroup = "sbird";
+    
+    if (userPrototype === SbirdUser.prototype) {
+        userGroup = "sbird";
+    } else if (userPrototype === SauctionUser.prototype) {
+        userGroup = "sauction";
+    } 
+
+    let sessionConstructor = new SessionConstructor(user.id, userGroup, '');
+    done(null, sessionConstructor);
   });
 
   /*
   deserializeUser는 매 요청시 실행됨. passport.session() 미들웨어가 이 메서드 호출.
   serializeUser에서 세션에 저장한 아이디를 받아 디비에서 사용자 정보를 조회하고
-  조회한 정보를 req.user에 저장하므로 랖으로 req.user를 통해 사용자 정보 가져올 수 있음.
+  조회한 정보를 req.user에 저장하므로 앞으로 req.user를 통해 사용자 정보 가져올 수 있음.
   */
- passport.deserializeUser((id, done) => {
-  SbirdUser.findOne({
-    where: { id },
-    //팔로잉/팔로워 목록도 함께 가져온다.
-    include: [{
-      model: SbirdUser,
-      attributes: ['id', 'nick'],
-      as: 'Followers',
-    }, {
-      model: SbirdUser,
-      attributes: ['id', 'nick'],
-      as: 'Followings',
-    }],
-  })
-    .then(user => done(null, user))
-    .catch(err => done(err));
+ passport.deserializeUser((sessionConstructor, done) => {
+   const id = sessionConstructor.userId;
+/* SBIRD */
+  if (sessionConstructor.userGroup == 'sbird') {
+    SbirdUser.findOne({
+      where: { id },
+      //팔로잉/팔로워 목록도 함께 가져온다.
+      include: [{
+        model: SbirdUser,
+        attributes: ['id', 'nick'],
+        as: 'Followers',
+      }, {
+        model: SbirdUser,
+        attributes: ['id', 'nick'],
+        as: 'Followings',
+      }],
+    })
+      .then(user => done(null, user))
+      .catch(err => done(err));
+/* END SBIRD */
+/* SAUCTION */
+  } else if (sessionConstructor.userGroup == 'sauction') {
+    SauctionUser.findOne({ where: { id } })
+      .then(user => done(null, user))
+      .catch(err => done(err));
+/* END SAUCTION */
+  }
 });
 
   local(passport);
   kakao(passport);
 };
+
+function SessionConstructor(userId, userGroup, details) {
+  this.userId = userId;
+  this.userGroup = userGroup;
+  this.details = details;
+}

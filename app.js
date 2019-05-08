@@ -1,12 +1,12 @@
-var createError = require('http-errors');
+//var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
-var logger = require('morgan');
 var session = require('express-session');
 var flash = require('connect-flash');
 var morgan = require('morgan');
 var passport = require('passport');
+var ColorHash = require('color-hash');
 //npm i dotenv 비밀키는 .env 파일에 넣어두면, dotenv가 process.env 객체에 넣어줌.
 require('dotenv').config();
 //var expressEjsLayouts = require('express-ejs-layouts');
@@ -31,17 +31,33 @@ const lex = require('greenlock-express').create({
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var commentsRouter = require('./routes/comments');
-/*SBIRD*/
+/* SBIRD */
 var sbirdPageRouter = require('./routes/sbird/page');
 var sbirdAuthRouter = require('./routes/sbird/auth');
 var sbirdPostRouter = require('./routes/sbird/post');
 var sbirdUserRouter = require('./routes/sbird/user');
-/*END SBIRD*/
+/* END SBIRD */
+/* SCHAT */
+var schatIndexRouter = require('./routes/schat/index');
+/* END SCHAT */
+/* SAUCTION */
+var sauctionIndexRouter = require('./routes/sauction/index');
+var sauctionAuthRouter = require('./routes/sauction/auth');
+var checkAuction = require('./schedule/sauction/checkAuction');
+/* END SAUCTION */
+/* SMAP */
+var smapIndexRouter = require('./routes/smap/index');
+/* END SMAP */
 //sequelize, mysql2, sequelize-cli -g 설치 후에 추가. // ./models는 ./models/index.js와 같음
 var sequelize = require('./models').sequelize;
 //const sequelize = require('./models');
+/* SBIRD */
 //npm i passport passport-local passport-kakao bcrypt // './passport' = './passport/index.js'
 var passportConfig = require('./passport');
+/* END SBIRD */
+/* SAUCTION *
+var sauctionPassportConfig = require('./passport/sauction/index');
+/* END SAUCTION */
 //mongoose 설치 후 추가
 var mongooseConnect = require('./schemas');
 
@@ -51,6 +67,19 @@ sequelize.sync();
 passportConfig(passport);
 //mongoose connect 호출
 mongooseConnect();
+//SAUCTION 경매 낙찰자 확인 스케쥴
+checkAuction();
+
+//Socket.IO에서 세션에 접근하기 위해, express-session을 미들웨어 만들어 공유
+var sessionMiddleware = session({
+  resave: true,
+  saveUninitialized: true,
+  secret: process.env.COOKIE_SECRET, 
+  cookie: { 
+    httpOnly: true,
+    secure: false,
+  },
+});
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -70,8 +99,7 @@ app.use((req, res, next) => {
 });*/
 
 /*morgan 미들웨어 
-  인자: 개발(dev, short) / 상용(common, combined)
-app.use(logger('dev'));*/
+  인자: 개발(dev, short) / 상용(common, combined)*/
 app.use(morgan('dev'));
 
 /*static 미들웨어. express 내장
@@ -80,9 +108,17 @@ app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 /* SBIRD */
-//업로드한 이미지를 제공할 라우터(/img)도 express.static 미들로 폴더와 연결
+//업로드한 이미지를 제공할 라우터(/sbird/img)도 express.static 미들로 폴더와 연결
 app.use('/sbird/img', express.static(path.join(__dirname, 'uploads/sbird/img')));
-/*END SBIRD*/
+/* END SBIRD */
+/* SCHAT */
+//업로드한 이미지를 제공할 라우터(/schat/img)도 express.static 미들로 폴더와 연결
+app.use('/schat/img', express.static(path.join(__dirname, 'uploads/schat/img')));
+/* END SCHAT */
+/* SAUCTION */
+//업로드한 이미지를 제공할 라우터(/sauction/img)도 express.static 미들로 폴더와 연결
+app.use('/sauction/img', express.static(path.join(__dirname, 'uploads/sauction/img')));
+/* END SAUCTION */
 
 /*express-ejs-layouts 미들웨어 : app.set(...); 추가 설정 필요. 문서 확인.
 app.use(expressEjsLayouts);*/
@@ -99,7 +135,9 @@ app.use(express.urlencoded({ extended: false })); //false=querystring 모듈 사
   Ex) app.use(cookieParser()); => app.use(cookieParser('secret code'));*/
 app.use(cookieParser(process.env.COOKIE_SECRET));
 
-/*express-session 미들웨어: req.session, req.sessionID, req.session.destroy()...*/
+//app.js와 socket.js 간에 express-session 미들웨어 공유를 위해 변수로 분리.
+app.use(sessionMiddleware);
+/*express-session 미들웨어: req.session, req.sessionID, req.session.destroy()...
 app.use(session({
   resave: true, //요청 왔을때 세션에 수정 사항 없어도 세션 다시 저장 할지
   saveUninitialized: true, //세션에 저장할 내역이 없더라도 저장할지. 보통 방문자 추적에 사용
@@ -109,7 +147,7 @@ app.use(session({
     secure: false, //http에서도 사용가능하게. https 도입후 true 변경
     //store: //서버 재시작시 세션 사라짐. 데이터베이스를 연결해 세션 유지
   },
-}));
+}));*/
 
 /*flash 미들웨어: 일회성 메시지를 웹 브라우저에 나타낼때. req.flash...*/
 app.use(flash());
@@ -117,6 +155,16 @@ app.use(flash());
 app.use(passport.initialize());
 //req.session 객체에 passport 정보 저장. req.session객체는 express-session에서 생성 하므로 이것보다 뒤에 연결해야 함.
 app.use(passport.session());
+
+//color-hash 패키지. 세션 아이디를 HEX형식의 색상문자열로 바꿔줌.
+//해시이므로 같은 세션은 항상 같은 색. 사용자 많으면 중복될 수 있음.
+app.use((req, res, next) => {
+  if (!req.session.color) {
+    const colorHash = new ColorHash();
+    req.session.color = colorHash.hex(req.sessionID);
+  }
+  next();
+});
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
@@ -127,6 +175,17 @@ app.use('/sbird/auth', sbirdAuthRouter);
 app.use('/sbird/post', sbirdPostRouter);
 app.use('/sbird/user', sbirdUserRouter);
 /* SBIRD END */
+/* SCHAT */
+app.use('/schat', schatIndexRouter);
+/* END SCHAT */
+/* SAUCTION */
+app.use('/sauction', sauctionIndexRouter);
+app.use('/sauction/auth', sauctionAuthRouter);
+/* END SAUCTION */
+/* SMAP */
+app.use('/smap', smapIndexRouter);
+/* END SMAP */
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

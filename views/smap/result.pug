@@ -1,0 +1,85 @@
+extends layout
+
+block content
+  h1= query + ' 검색 결과(' + results.length + ')'
+  #map
+  script.
+    //-position배열 변수를 만든뒤에, for문으로 검색 결과 개수 만큼 위도,경도,장소명,장소아이디를 넣음
+    var positions = [];
+  for result in results
+    script.
+      //-서버의 데이터로 치환됨. 문자열이면 따옴표로 감싸준다.
+      positions.push({
+        lat: #{result.geometry.location.lat},
+        lng: #{result.geometry.location.lng},
+        name: '#{result.name}',
+        id: '#{result.place_id}'
+      });
+  script.
+    function initMap() {
+      //-검색 결과가 있다면 첫번째 검색결과 중심. 결과가 없으면 서울시의 좌표임.
+      var center = positions[0] || { lat: 37.540705, lng: 126.956764 };
+      //-new google.maps.Map(태그,옵션)으로 지도를 렌더링
+      //-태그는 지도를 렌더링할 태그. 옵션은 지도에 관한 설정
+      var map = new google.maps.Map(document.getElementById('map'), {
+        //-지도의 확대 정도
+        zoom: 13,
+        //-지도의 중심 좌표
+        center: center
+      });
+
+      positions.forEach(function(pos) {
+        //-지도에 마커를 표시
+        var marker = new google.maps.Marker({
+          //-위도, 경도
+          position: { lat: pos.lat, lng: pos.lng },
+          //마커를 표시할 지도
+          map: map,
+          //마커에 마우스를 올렸을때 표시할 툴팁
+          title: pos.name
+        });
+        var div = document.createElement('div');
+        var h1 = document.createElement('h1');
+        var button = document.createElement('button');
+        h1.textContent = pos.name;
+        button.classList.add('btn');
+        button.textContent = '즐겨찾기 추가';
+        button.onclick = function () {
+          var xhr = new XMLHttpRequest();
+          xhr.onload = function () {
+            if (xhr.status === 200) {
+              location.href = '/smap/';
+            }
+          };
+          xhr.open('POST', '/smap/location/' + pos.id + '/favorite');
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.send(JSON.stringify({
+            name: pos.name,
+            lat: pos.lat,
+            lng: pos.lng
+          }));
+        };
+        div.appendChild(h1);
+        div.appendChild(button);
+        //정보창을 띄우는 코드. 옵션 content에 정보창 내용물을 넣어준다.
+        var infowindow = new google.maps.InfoWindow({
+          content: div
+        });
+        marker.addListener('click', function () {
+          infowindow.open(map, marker);
+        });
+      });
+    }
+  script(
+    async
+    defer
+    src="https://maps.googleapis.com/maps/api/js"
+      + "?key=AIzaSyAtrGAoWjHENYzFk0AQg3wW7JXNTSZjPRM&callback=initMap"
+  )
+//-
+  if results
+    for result in results
+      div= result.formatted_address
+      div= JSON.stringify(result.geometry.location)
+      div= result.place_id
+      div= result.name

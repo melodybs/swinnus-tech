@@ -34,7 +34,7 @@ router.post('/join', isNotLoggedIn, async (req, res, next) => {
 
 router.post('/login', isNotLoggedIn, (req, res, next) => {
   //미들웨어를 라우터 미들웨어 안에 넣을 수 있음. 미들웨어에 사용자 정의 기능 추가 하고 싶을때 이렇게 가능.
-  passport.authenticate('local', (authErr, user, info) => {
+  passport.authenticate('sbird-local', (authErr, user, info) => {
     //성공 OR 실패하면 콜백 함수 호출되고, authErr이 있다면 실패한것
     if (authErr) {
       console.error(authErr);

@@ -1,11 +1,14 @@
 const mongoose = require('mongoose');
 
+const { MONGO_ID, MONGO_PASSWORD, NODE_ENV } = process.env;
+const MONGO_URL=`mongodb://${MONGO_ID}:${MONGO_PASSWORD}@localhost:27017/admin`;
+
 module.exports = () => {
   const connect = () => {
-    if (process.env.NODE_ENV !== 'production') {
+    if (NODE_ENV !== 'production') {
       mongoose.set('debug', true);
     }
-    mongoose.connect('mongodb://melodybs:bs741540@localhost:27017/admin', {
+    mongoose.connect(MONGO_URL, {
       dbName: 'nodejs',
     }, (error) => {
       if (error) {
@@ -16,6 +19,7 @@ module.exports = () => {
     });
   };
   connect();
+
   mongoose.connection.on('error', (error) => {
     console.error('몽고디비 연결 에러', error);
   });
@@ -26,4 +30,10 @@ module.exports = () => {
 
   require('./user');
   require('./comment');
+//SCHAT
+  require('./schat/chat');
+  require('./schat/room');
+//SMAP
+  require('./smap/favorite');
+  require('./smap/history');
 };

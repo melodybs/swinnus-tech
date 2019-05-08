@@ -2,7 +2,7 @@
 //'use strict';
 
 //Default const fs = require('fs');
-const path = require('path');
+//const path = require('path');
 const Sequelize = require('sequelize');
 //Default const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || 'development';
@@ -74,6 +74,27 @@ db.SbirdUser.belongsToMany(db.SbirdUser, {
   through: 'sbird_follows',
 });
 /* END SBIRD */
+
+/* SAUCTION */
+db.SauctionUser = require('./sauction/sauctionUser')(sequelize, Sequelize);
+db.SauctionGood = require('./sauction/sauctionGood')(sequelize, Sequelize);
+db.SauctionAuction = require('./sauction/sauctionAuction')(sequelize, Sequelize);
+
+//1:N관계가 2번 적용됨. 사용자가 여러 상품을 등록도 가능하고 낙찰도 가능하기 때문
+//두 관계를 구별 하기 위해 as속성에 owner, sold로 관계명 적어줌.
+//각각 ownerId, soldeId 컬럼으로 상품 모델에 추가됨.
+db.SauctionGood.belongsTo(db.SauctionUser, { as: 'owner' });
+db.SauctionGood.belongsTo(db.SauctionUser, { as: 'sold' });
+
+//1:N. 사용자가 입찰을 여러번 할 수 있으므로.
+db.SauctionUser.hasMany(db.SauctionAuction);
+db.SauctionAuction.belongsTo(db.SauctionUser);
+
+//1:N. 한 상품에 여러명이 입찰 하므로.
+db.SauctionGood.hasMany(db.SauctionAuction);
+db.SauctionAuction.belongsTo(db.SauctionGood);
+/* END SAUCTION */
+
 //관계설정(MySQL의 JOIN기능을 시퀄이 자동 구현)
 /*
 1:N(일대다)=> 1->N: 1.hasMany(N, {foreignKey: '', sourceKey: ''}); // 1에 대한 N 로우들을 불러온다.

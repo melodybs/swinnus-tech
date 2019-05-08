@@ -1,0 +1,28 @@
+doctype
+html
+  head
+    meta(charset='utf-8')
+    title SwinnusChat 채팅방
+  body
+    div F12를 눌러 console 탭과 network 탭을 확인하세요.
+  script(src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.dev.js')
+  script.
+    //-ws프로토콜이 아니라 http프로토콜. 먼저 폴링 시도후에 가능하면 ws로 업그레이드 하기때문
+    var socket = io.connect('http://localhost:80', {
+      path: '/schat/socket.io',
+      //-처음부터 웹소켓 통신을 원하면 설정
+      transports: ['websocket']
+    });
+    socket.on('news', function (data) {
+      console.log(data);
+      socket.emit('reply', 'Hello Node.JS');
+    });
+  //- ws 패키지 사용 코드  
+    var webSocket = new WebSocket("ws://localhost:80");
+    webSocket.onopen = function () {
+      console.log('서버와 웹소켓 연결 성공!');
+    }
+    webSocket.onmessage = function (event) {
+      console.log(event.data);
+      webSocket.send('클라이언트에서 서버로 답장을 보냅니다');
+    }

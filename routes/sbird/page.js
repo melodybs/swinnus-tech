@@ -4,6 +4,20 @@ const { SbirdPost, SbirdUser } = require('../../models');
 
 const router = express.Router();
 
+//로그인된 USER가 SbirdUser 아니면 로그아웃 시킨다.
+router.use((req, res, next) => {
+  if (req.user) {
+    const curUserPrototype = Object.getPrototypeOf(req.user);
+    
+    if (SbirdUser.prototype !== curUserPrototype) {
+      req.logout();
+      req.session.destroy();
+      res.redirect('/sbird');
+    } 
+  }
+  next();
+});
+
 router.get('/profile', isLoggedIn, (req, res) => {
   res.render('sbird/profile', { title: '내 정보 - SwinnusBird', user: req.user });
 });

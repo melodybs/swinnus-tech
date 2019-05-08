@@ -29,6 +29,30 @@ server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
 
+/* SCHAT */
+var session = require('express-session');
+var sessionMiddleware = session({
+  resave: true,
+  saveUninitialized: true,
+  secret: process.env.COOKIE_SECRET, 
+  cookie: { 
+    httpOnly: true,
+    secure: false,
+  },
+});
+
+const webSocket = require('../socket/schat/socket');
+webSocket(server, app, sessionMiddleware);
+/* END SCHAT */
+
+/* SAUCTION */
+const sauctionSse = require('../sse/sauction/sse');
+const sauctionWebSocket = require('../socket/sauction/socket');
+
+sauctionWebSocket(server, app);
+sauctionSse(server);
+/* END SAUCTION */
+
 /**
  * Normalize a port into a number, string, or false.
  */
