@@ -6,7 +6,9 @@
 const Sequelize = require('sequelize');
 //Default const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || 'development';
-const config = require(__dirname + '/../config/config.json')[env];
+//const config = require(__dirname + '/../config/config.json')[env];
+//json -> js 설정으로 변경.
+const config = require('../config/config')[env];
 const db = {};
 
 //Default let sequelize;
