@@ -24,7 +24,7 @@ block content
   a(href='/schat/room') 채팅방 생성
   script(src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.dev.js')
   script.
-    var socket = io.connect('http://localhost:80/schat/room', {
+    var socket = io.connect(':80/schat/room', {
       path: '/schat/socket.io'
     });
     socket.on('newRoom', function (data) {

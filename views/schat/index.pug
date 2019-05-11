@@ -8,7 +8,7 @@ html
   script(src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.dev.js')
   script.
     //-ws프로토콜이 아니라 http프로토콜. 먼저 폴링 시도후에 가능하면 ws로 업그레이드 하기때문
-    var socket = io.connect('http://localhost:80', {
+    var socket = io.connect(':80', {
       path: '/schat/socket.io',
       //-처음부터 웹소켓 통신을 원하면 설정
       transports: ['websocket']

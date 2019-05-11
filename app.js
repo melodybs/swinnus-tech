@@ -1,4 +1,9 @@
 /* ETC
+AWS: cd /opt/bitnami
+     sudo ./ctlscript.sh stop apache
+     cd ~/swinnus-tech
+     sudo npm start
+     sudo service mongod start
 cross-env: 동적으로 process.env 변경 가능. 모든 운영체제에서 가능하게함(윈도우도 가능하게 해줌)
            package.json start 설정 참고.
            npm i -g cross-env && npm i cross-env

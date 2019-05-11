@@ -67,7 +67,7 @@ module.exports = (server, app, sessionMiddleware) => {
       const userCount = currentRoom ? currentRoom.length : 0;
 
       if (userCount === 0) {
-        axios.delete(`http://localhost:80/schat/room/${roomId}`)
+        axios.delete(`/schat/room/${roomId}`)
           .then(() => {
             console.log('방 제거 요청 성공');
           })

@@ -31,7 +31,7 @@ block content
     button(type='submit') 전송
   script(src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.dev.js')
   script.
-    var socket = io.connect('http://localhost:80/schat/chat', {
+    var socket = io.connect('/schat/chat', {
       path: '/schat/socket.io'
     });
     socket.on('join', function (data) {
@@ -66,7 +66,7 @@ block content
         div.appendChild(chat);
       } else {
         var gif = document.createElement('img');
-        gif.src = '/schat/gif/' + data.gif;
+        gif.src = '/schat/img/' + data.gif;
         div.appendChild(gif);
       }
       div.style.color = data.user;
