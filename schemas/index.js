@@ -8,10 +8,10 @@ const {
 let MONGO_URL;
 let db;
 if (process.env.NODE_ENV === 'production') {
-  MONGO_URL=`mongodb://${MONGO_ID_PROD}:${MONGO_PASSWORD_PROD}@${MONGO_HOST_DEV}` 
+  MONGO_URL=`mongodb://${MONGO_ID_PROD}:${MONGO_PASSWORD_PROD}@${MONGO_HOST_PROD}` 
   db = MONGO_DATABASE_PROD;
 } else {
-  MONGO_URL=`mongodb://${MONGO_ID_DEV}:${MONGO_PASSWORD_DEV}@${MONGO_HOST_PROD}`;
+  MONGO_URL=`mongodb://${MONGO_ID_DEV}:${MONGO_PASSWORD_DEV}@${MONGO_HOST_DEV}`;
   db = MONGO_DATABASE_DEV;
 }
 
