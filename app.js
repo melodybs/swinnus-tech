@@ -1,3 +1,26 @@
+/* ETC
+cross-env: 동적으로 process.env 변경 가능. 모든 운영체제에서 가능하게함(윈도우도 가능하게 해줌)
+           package.json start 설정 참고.
+           npm i -g cross-env && npm i cross-env
+npm audit: npm install을 할때 자동으로 취약점을 검사. npm audit fix를 사용하면 npm이 수정 가능한 오류는 자동 처리해줌.
+           node 5.10 이전 버전은 npm i -g retire 설치후 retire로 검사 가능.
+pm2: 원활한 서버운영 위한 패키지. 개발시 nodemon을 쓴다면, 배포시에는 pm2.
+     가장 큰 기능은 서버가 에러로 꺼지면 서버를 재가동 해줌.
+     멀티프로세싱 지원. 멀티스레딩은 아니지만 노드 프로세스를 1개 이상으로 늘릴수 있음.
+     단점은 멀티스레딩이 아니므로 서버메모리 같은 자원을 공유하지 못함.
+     -> 세션은 메모리에 저장이 되는데, 공유되지 않으므로 새로고침했을때 다른 프로세스로 가면 세션이 사라짐.
+     -> 세션을 공유하게 해주는 Memcached나 Redis 같은 서비스를 사용하면 됨.
+     npm i -g pm2 && npm i pm2
+     package.json: node app -> pm2 start app.js (pm2로 스크립트를 실행하는 명령어)
+     pm2는 노드프로세스를 백그라운드로 돌리기 때문에 실행중에 콘솔에 명령어 입력가능.
+     ->pm2 list: 백그라운드에거 돌고 있는 노드 프로세스 확인
+       pm2 kill: pm2 프로세스를 종료.
+       pm2 reload all: 서버를 재시작.
+       pm2 monit: 현재 프로세스를 모니터링.
+     pm2 클러스터링 사용 방법
+     ->pm2 start app.js --> pm2 start app.js -i 0
+       -i 뒤에 생성하길 원하는 프로세스 개수 입력. 0은 현재 CPU개수. -1은 현재 CPU개수에서 마이너스1 
+*/
 //var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
@@ -6,6 +29,13 @@ var session = require('express-session');
 var flash = require('connect-flash');
 var morgan = require('morgan');
 var passport = require('passport');
+//helmet과 hpp는 서버의 각종 취약점을 보완해주는 패키지들.
+const helmet = require('helmet');
+const hpp = require('hpp');
+//레디스와 익스플레스를 연결해주는 패키지. 세션을 디비에 저장.
+//express-session에 의존성이 있음로 session을 인자로 넣어서 호출해야함.
+//express-rate-limit도 사용량을 메모리에 저장함. rate-limit-redis 패키지와 함께 사용하면 유지 할 수 있음.
+const RedisStore = require('connect-redis')(session);
 var ColorHash = require('color-hash');
 //npm i dotenv 비밀키는 .env 파일에 넣어두면, dotenv가 process.env 객체에 넣어줌.
 require('dotenv').config();
@@ -70,7 +100,7 @@ mongooseConnect();
 //SAUCTION 경매 낙찰자 확인 스케쥴
 checkAuction();
 
-//Socket.IO에서 세션에 접근하기 위해, express-session을 미들웨어 만들어 공유
+/*Socket.IO에서 세션에 접근하기 위해, express-session을 미들웨어 만들어 공유
 var sessionMiddleware = session({
   resave: true,
   saveUninitialized: true,
@@ -79,7 +109,36 @@ var sessionMiddleware = session({
     httpOnly: true,
     secure: false,
   },
-});
+});*/
+/* 배포 설정 */
+const sessionMiddleware = {
+  resave: false,
+  saveUninitialized: false,
+  secret: process.env.COOKIE_SECRET,
+  cookie: {
+    httpOnly: true,
+    secure: false,
+  },
+  store: new RedisStore({
+    //아래 정보는 redislabs로 클라우딩 서비스 받은 정보임.
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+    pass: process.env.REDIS_PASSWORD,
+    //레디스가 에러가 났을때 콘솔에 표시할지 결정하는 옵션.
+    logErrors: true,
+  }),
+};
+if (process.env.NODE_ENV === 'production') {
+  /*
+  proxy, cookie.secure은 https를 사용하는 경우 true로 설정
+  proxy = ture: https 적용을 위해 노드 서버 앞에 다른 서버를 두었을때.
+  cookie.secure = true: https 적용이나 로드밸런싱(요청부하분산) 등을 위해 true로 설정.
+  */
+  sessionMiddleware.proxy = true;
+  //sessionMiddleware.cookie.secure = true;
+}
+/* END 배포 설정 */
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -98,9 +157,19 @@ app.use((req, res, next) => {
   next();
 });*/
 
-/*morgan 미들웨어 
-  인자: 개발(dev, short) / 상용(common, combined)*/
-app.use(morgan('dev'));
+/* 배포 설정 */
+if (process.env.NODE_ENV === 'production') {
+  //combined모드는 dev모드보다 더 많은 사용자 로그를 남김.
+  app.use(morgan('combined'));
+  //helmet과 hpp는 익스프레스 미들웨어로 사용 가능.
+  app.use(helmet());
+  app.use(hpp());
+} else {
+  //morgan 미들웨어. 인자: 개발(dev, short) / 상용(common, combined)
+  app.use(morgan('dev'));  
+}
+/* END 배포 설정 */
+
 
 /*static 미들웨어. express 내장
   인자로 정적 파일들이 담긴 폴더 지정 
@@ -136,7 +205,7 @@ app.use(express.urlencoded({ extended: false })); //false=querystring 모듈 사
 app.use(cookieParser(process.env.COOKIE_SECRET));
 
 //app.js와 socket.js 간에 express-session 미들웨어 공유를 위해 변수로 분리.
-app.use(sessionMiddleware);
+app.use(session(sessionMiddleware));
 /*express-session 미들웨어: req.session, req.sessionID, req.session.destroy()...
 app.use(session({
   resave: true, //요청 왔을때 세션에 수정 사항 없어도 세션 다시 저장 할지

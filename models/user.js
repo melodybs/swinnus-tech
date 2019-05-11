@@ -46,5 +46,7 @@ module.exports = (sequelize, DataTypes) => {
     */
     //true로 되어 있으면 createdAt, updatedAt 컬럼이 추가 되고 생성, 수정시 자동 입력됨
     timestamps: false,
+    charset: 'utf8',
+    collate: 'utf8_general_ci',
   });
 };

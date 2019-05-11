@@ -9,5 +9,7 @@ module.exports = (sequelize, DataTypes) => (
     tableName: 'sbird_hashtags',
     timestamps: true,
     paranoid: true,
+    charset: 'utf8',
+    collate: 'utf8_general_ci',
   })
 );

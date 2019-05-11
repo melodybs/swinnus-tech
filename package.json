@@ -13,15 +13,16 @@
   "private": true,
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ./bin/www",
-    "startnodemon": "nodemon ./bin/www"
+    "startOld": "node ./bin/www",
+    "start": "cross-env NODE_ENV=production PORT=80 pm2 start ./bin/www -i 0",
+    "dev": "nodemon ./bin/www"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/melodybs/swinnus-tech.git"
   },
   "author": "jm.kim",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/melodybs/swinnus-tech/issues"
   },
@@ -32,7 +33,9 @@
     "bcrypt": "^3.0.6",
     "color-hash": "^1.0.3",
     "connect-flash": "^0.1.1",
+    "connect-redis": "^3.4.1",
     "cookie-parser": "~1.4.3",
+    "cross-env": "^5.2.0",
     "debug": "~2.6.9",
     "dotenv": "^7.0.0",
     "ejs": "^2.6.1",
@@ -40,6 +43,8 @@
     "express-ejs-layouts": "^2.5.0",
     "express-session": "^1.16.1",
     "greenlock-express": "^2.7.6",
+    "helmet": "^3.18.0",
+    "hpp": "^0.2.2",
     "http-errors": "~1.6.2",
     "mongoose": "^5.5.5",
     "morgan": "~1.9.0",
@@ -49,10 +54,13 @@
     "passport": "^0.4.0",
     "passport-kakao": "0.0.5",
     "passport-local": "^1.0.0",
-    "pug": "2.0.0-beta11",
+    "pm2": "^3.5.0",
+    "pug": "^2.0.3",
     "sequelize": "^5.7.6",
     "socket.io": "^2.2.0",
     "sse": "0.0.8",
+    "winston": "^3.2.1",
+    "winston-daily-rotate-file": "^3.9.0",
     "ws": "^7.0.0"
   },
   "devDependencies": {
