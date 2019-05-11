@@ -26,6 +26,7 @@ pm2: 원활한 서버운영 위한 패키지. 개발시 nodemon을 쓴다면, �
      pm2 클러스터링 사용 방법
      ->pm2 start app.js --> pm2 start app.js -i 0
        -i 뒤에 생성하길 원하는 프로세스 개수 입력. 0은 현재 CPU개수. -1은 현재 CPU개수에서 마이너스1 
+     "start": "cross-env NODE_ENV=production PORT=80 pm2 start ./bin/www -i 0",
 */
 //var createError = require('http-errors');
 var express = require('express');
